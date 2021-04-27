@@ -1,0 +1,379 @@
+---
+output:
+  html_document:
+    fig_width: 8
+    code_folding: hide
+    highlight: tango
+    toc: true
+    toc_float:
+      collapsed: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=8, fig.height=4,
+                      echo=FALSE, warning=FALSE, message=FALSE)
+```
+Alicia Fazzone - CS 544 Term Project
+
+
+## Suicides Rates Overview 1995 to 2014
+
+
+The following report is from the suicides rates overview dataset on Kaggle. https://www.kaggle.com/russellyates88/suicide-rates-overview-1985-to-2016 .
+I did some data pre-processing on the dataset removing years and countries that did not have sufficient data, and arrived at a 20 year span from 1995 - 2014 for 70 countries.  The attributes in the dataset are broken down granularly by age country, age group, sex, then shows number of suicides and number of suicides per 100k for each of those groupings.  The following barchart shows the aggregate total number of suicides per year.
+
+```{r echo=TRUE}
+library(plotly)
+
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+df <-read.csv(file = 'C:/Users/HP/Documents/544/CS544_Project_Fazzone/data.csv')
+
+tib <- as_tibble(df)
+
+year_total <- tib %>% group_by(year) %>% summarise(sum(suicides_no))
+
+
+years <- pull(year_total, year)
+per_year <- pull(year_total, c(2))
+
+barplot(per_year, main = "Suicides per year",xlab = "Year",
+        ylab = "Total Suicides", names = years, col = "blue")
+```
+
+
+```{r echo=TRUE}
+```
+
+
+
+## Age Distribution
+
+The following is the cumulative total number of suicides for age groupings across all countries
+
+
+```{r echo = FALSE}
+
+age_total <- tib %>% group_by(age) %>% summarise(sum(suicides_no))
+
+
+age_group <- pull(age_total, age) 
+age_suicide <- pull(age_total, c(2)) 
+
+pie(age_suicide, main = "Suicides per Age group",
+         labels = age_group, col = rainbow(6))
+
+age_total
+
+
+
+
+
+```
+
+
+
+
+
+
+
+## Summary of Suicides per 100k population by age group
+
+
+
+
+
+```{r}
+ dd <-df %>% select(age, suicides.100k.pop)
+  
+  five <- subset(dd, dd$age == "5-14 years")
+  fif <- subset(dd, dd$age == "15-24 years")
+  twen <- subset(dd, dd$age == "25-34 years")
+  thir <- subset(dd, dd$age == "35-54 years")
+  fifty <- subset(dd, dd$age == "55-74 years")
+  sev <- subset(dd, dd$age == "75+ years")
+  
+  
+  par(mfrow=c(1,2), oma = c(0, 0, 2, 0))
+  
+  
+  boxplot(five$suicides.100k.pop, main ="5-14 years", col = "blue")
+  boxplot(fif$suicides.100k.pop, main ="15-24 years", col = "orange")
+  boxplot(twen$suicides.100k.pop, main ="25-34 years", col = "red")
+  boxplot(thir$suicides.100k.pop, main ="35-54 years", col = "purple")
+  boxplot(fifty$suicides.100k.pop, main ="55-74 years", col = "yellow")
+  boxplot(sev$suicides.100k.pop, main ="75+ years", col = "green")
+  
+  
+  
+```
+
+
+
+
+
+
+
+
+
+
+## The following Mosaic Plot shows the aggregate age groups by sex across all countries
+
+
+```{r echo = FALSE}
+
+
+female <- subset(df, sex == "female")
+female = as.tibble(female)
+fem_age <- female %>% group_by(age) %>% summarise(sum(suicides_no))
+
+
+male = subset(df, sex == "male")
+male = as.tibble(male)
+male_age <- male %>% group_by(age) %>% summarise(sum(suicides_no))
+
+
+ages <- c("5-14 years", "15-24 years", "25-34 years", "35-54 years", "55-74 years", "75+ years" )
+f_age <- c(12185, 117691, 140576, 355875, 287550, 150323)
+m_age <- c(24326, 444248, 631152, 1417072, 882737,300663)
+
+m_vs_fem <- rbind(f_age, m_age)
+
+colnames(m_vs_fem) <- ages
+rownames(m_vs_fem) <- c("female", "male")
+
+
+
+mosaicplot(t(m_vs_fem), color=c("red", "blue"),
+           main = "Suicides Sex vs Age Group ")
+
+m_vs_fem 
+
+```
+
+
+
+
+
+
+
+
+## Distribution of suicides per 100K population is right skewed
+
+
+
+```{r echo = FALSE}
+
+
+d <- density(df$suicides.100k.pop)
+plot(d, main = "Density of Suicide per 100K population", xlab = "Suicide per 100k", xlim = c(0,20))
+polygon(d, col = "cyan", border = "black")
+
+```
+
+
+
+## Selected Different Size samples to test the Central Limit Theorm
+
+Since every yearly entry for every country contained the age group under 15 years old for both male and female, there were a lot of zeros in this data since that age groups was 1/6 of the total values.  
+
+
+```{r}
+  par(mfrow=c(1,2), oma = c(0, 0, 2, 0))
+
+  
+  sample1 <- replicate(1000,sample(df$suicides.100k.pop, size =10, replace = TRUE))
+  sample2 <- replicate(1000,sample(df$suicides.100k.pop, size =20, replace = TRUE))
+  sample3 <- replicate(1000,sample(df$suicides.100k.pop, size =30, replace = TRUE))
+  sample4 <- replicate(1000,sample(df$suicides.100k.pop, size =40, replace = TRUE))
+  
+  e <- density(sample1)
+  plot(e, main = "Sample Size 10", xlab = "Suicide per 100k", xlim = c(0,20))
+  polygon(d, col = "darkorchid", border = "black")
+  
+  
+  f <- density(sample2)
+  plot(f, main = "Sample Size 20", xlab = "Suicide per 100k", xlim = c(0,20))
+  polygon(d, col = "green", border = "black")
+  
+  
+  g <- density(sample3)
+  plot(g, main = "Sample Size 30", xlab = "Suicide per 100k", xlim = c(0,20))
+  polygon(d, col = "blue", border = "black")
+  
+  h <- density(sample4)
+  plot(h, main = "Sample Size 40", xlab = "Suicide per 100k", xlim = c(0,20))
+  polygon(d, col = "yellow", border = "black")
+  
+
+```
+
+
+
+
+## Simple Random Sampling with replacement
+
+I used simple random sampling with replacement to recreate the mosaic plot for the total distribution of age vs. sex and the results were very similar to the data of the entire pouluation.
+
+
+
+```{r}
+
+library(sampling)
+
+#Simple Random Sampling with Replacement
+
+female2 <- subset(df, sex == "female")
+
+s <- srswor(1000, nrow(female2))
+
+
+rows <-(1:nrow(female2))[s!=0]
+rows <- rep(rows, s[s!=0] )
+
+srs_sample <- female2[rows,]
+
+
+srs_sample = as.tibble(srs_sample)
+fem_age2 <- srs_sample %>% group_by(age) %>% summarise(sum(suicides_no))
+fem_age2
+
+ages2 <- c("5-14 years", "15-24 years", "25-34 years", "35-54 years", "55-74 years", "75+ years" )
+f_age2 <- c(1518,  12991, 21147, 30802, 26982, 18009)
+
+
+
+male2 <- subset(df, sex == "male")
+t <- srswor(1000, nrow(male2))
+
+
+rows2 <-(1:nrow(male2))[t!=0]
+rows2 <- rep(rows2, t[t!=0] )
+
+srs_sample2 <- male2[rows,]
+
+
+srs_sample2  = as.tibble(srs_sample2)
+male_age2 <- srs_sample2 %>% group_by(age) %>% summarise(sum(suicides_no))
+male_age2
+
+
+m_age2 <- c(2804, 56052, 84663, 180263, 95221,24559)
+
+
+m_vs_fem2 <- rbind(f_age2, m_age2)
+
+colnames(m_vs_fem2) <- ages
+rownames(m_vs_fem2) <- c("female", "male")
+
+
+
+mosaicplot(t(m_vs_fem2), color=c("green", "purple"),
+           main = "Simple Random Sampling without Replacement Suicides Sex vs Age Group ")
+
+
+
+
+
+```
+
+
+
+
+
+## Systematic Sampling
+
+I used systematica sampling with replacement to recreate the mosaic plot for the total distribution of age vs sex and the results were much higher for females in the 14-24 year olds and the  75+ age group.
+
+
+
+
+
+```{r}
+
+#Systematic Sampling
+
+
+N <- nrow(female2)
+n <- 1000
+k = round(N/n)
+
+r <- sample(k,1)
+
+ss <-seq(r, by = k, length = n)
+
+ss_sample <- female2[ss,]
+
+
+ss_sample = as.tibble(ss_sample)
+fem_age3 <- ss_sample %>% group_by(age) %>% summarise(sum(suicides_no))
+fem_age3
+
+ages3 <- c("5-14 years", "15-24 years", "25-34 years", "35-54 years", "55-74 years", "75+ years" )
+f_age3 <- c(340,  23749, 11493, 76988, 8481, 34990)
+
+
+
+N2 <- nrow(male2)
+n2 <- 1000
+k2 = round(N2/n2)
+
+
+r2 <- sample(k2,1)
+
+ss2 <-seq(r2, by = k2, length = n2)
+
+
+ss_sample2 <- male2[ss2,]
+
+ss_sample2 = as.tibble(ss_sample2)
+male_age3 <- ss_sample2 %>% group_by(age) %>% summarise(sum(suicides_no))
+male_age3
+
+m_age3 <- c(6125, 12630, 138360, 131474, 116049, 5368)
+
+
+m_vs_fem3 <- rbind(f_age3, m_age3)
+
+colnames(m_vs_fem3) <- ages3
+rownames(m_vs_fem3) <- c("female", "male")
+
+
+
+mosaicplot(t(m_vs_fem3), color=c("deeppink", "blue"),
+           main = "Systematic Sampling without Suicides Sex vs Age Group ")
+
+```
+
+
+
+
+## The following shows the mean suicide number per 100k per country
+
+
+```{r fig.height = 100, fig.width = 35}
+library(RColorBrewer)
+country_total <- tib %>% group_by(ï..country)  %>%  summarise(mean(suicides.100k.pop))
+c <- pull(country_total, c(1))
+m <- pull(country_total, c(2))
+cm <- rbind(m,c)
+
+
+par(mai=c(1,2,1,1))
+
+
+
+
+
+barplot(cm, horiz = TRUE, main ="Mean suicide per 100K per country", col = "darkturquoise", names.arg = c, width = 70, las =1,cex.names=2.5, cex.axis = 3, cex.main=5,decreasing = TRUE)
+```
+
+
+
+
+##  Conclusion
+
+The age group most likely to commit suicide is 35-54 years old, and males are more likely to commit suicide than females. The overall suicide rate has stayed the about the same between 1995 to 2014 with no sharp increases or decreases.
